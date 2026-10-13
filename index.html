@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FitSearch — Temukan Program Latihan Ideal Anda</title>
+
+  <!-- Google Fonts: Sora (judul) + Inter (isi) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Chart.js 4.4.2 via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+  <!-- Custom styles (palette, dark mode, component classes) -->
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Tailwind config: enable dark mode via class strategy -->
+  <script>
+    tailwind.config = { darkMode: 'class' };
+  </script>
+</head>
+
+<!-- data-theme applied by JS before first paint to prevent flash -->
+<body class="site-body" id="body-root">
+
+  <!-- ============================================================
+       NAVBAR — sticky, glassmorphism
+       ============================================================ -->
+  <nav class="navbar" role="navigation" aria-label="Navigasi utama">
+    <div class="navbar-inner">
+      <!-- Logo -->
+      <a href="#" class="navbar-logo" aria-label="FitSearch — halaman utama">
+        <span class="logo-icon" aria-hidden="true">⚡</span>
+        <span class="logo-text">FitSearch</span>
+      </a>
+
+      <!-- Nav links (hidden on mobile) -->
+      <ul class="navbar-links" role="list">
+        <li><a href="#program-section" class="nav-link">Program</a></li>
+        <li><a href="#search-section" class="nav-link">Cari</a></li>
+        <li><a href="#insight-section" class="nav-link">Insight</a></li>
+        <li><a href="#footer" class="nav-link">Tentang</a></li>
+      </ul>
+
+      <!-- Right controls -->
+      <div class="navbar-actions">
+        <!-- Badge: jumlah anggota ditampilkan -->
+        <span id="member-count-badge" class="badge-count" aria-live="polite">Memuat…</span>
+
+        <!-- Tombol Rencana Saya -->
+        <button id="btn-my-plan" class="btn-icon plan-btn-nav" aria-label="Buka Rencana Saya" aria-expanded="false" aria-controls="plan-modal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          <span class="plan-count-badge hidden" id="plan-nav-count" aria-hidden="true">0</span>
+        </button>
+
+        <!-- Tombol buka filter (mobile) -->
+        <button id="btn-open-filter" class="btn-icon" aria-label="Buka panel filter" aria-expanded="false" aria-controls="filter-sheet">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
+          </svg>
+        </button>
+
+        <!-- Tombol ganti tema -->
+        <button id="btn-theme" class="btn-icon" aria-label="Ganti tema terang/gelap">
+          <span id="theme-icon" aria-hidden="true">🌙</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ============================================================
+       HERO
+       ============================================================ -->
+  <section class="hero-section" aria-labelledby="hero-heading">
+    <div class="hero-content">
+      <p class="hero-eyebrow">Gym Members Exercise Dataset · 973 anggota</p>
+      <h1 id="hero-heading" class="hero-title">
+        Temukan Program<br/>Latihan <span class="hero-highlight">Ideal</span> Anda
+      </h1>
+      <p class="hero-sub">
+        Jelajahi data latihan nyata dari 973 anggota gym. Filter berdasarkan jenis latihan, level, gender,
+        dan frekuensi untuk menemukan pola yang paling relevan bagi Anda.
+      </p>
+      <a href="#program-section" class="hero-cta">
+        Mulai Eksplorasi
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
+    </div>
+    <div class="hero-visual" aria-hidden="true">
+      <div class="hero-ring hero-ring-1"></div>
+      <div class="hero-ring hero-ring-2"></div>
+      <div class="hero-stat-bubble">
+        <span class="bubble-value" id="hero-avg-cal">—</span>
+        <span class="bubble-label">kkal rata-rata/sesi</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       ERROR BANNER
+       ============================================================ -->
+  <div id="error-banner" class="alert-error hidden" role="alert">
+    ⚠️ <strong>GYM_DATA tidak ditemukan.</strong>
+    Pastikan <code>gym_data.js</code> ada di folder yang sama, lalu buka <code>index.html</code> langsung di browser.
+  </div>
+
+  <!-- ============================================================
+       PROGRAM SECTION — kartu jenis latihan (horizontal scroll)
+       ============================================================ -->
+  <section id="program-section" class="section-wrapper" aria-labelledby="program-heading">
+    <div class="section-header">
+      <h2 id="program-heading" class="section-title">Pilih Jenis Latihan</h2>
+      <p class="section-sub">Klik kartu untuk memfilter seluruh halaman</p>
+    </div>
+    <!-- Diisi JS secara otomatis dari GYM_DATA -->
+    <div id="workout-cards" class="workout-scroll" role="list" aria-label="Daftar jenis latihan"></div>
+  </section>
+
+  <!-- ============================================================
+       MAIN LAYOUT: sidebar filter (lg+) + konten
+       ============================================================ -->
+  <div class="main-layout" id="main-content">
+
+    <!-- ===== SIDEBAR FILTER (lg ke atas) ===== -->
+    <aside class="sidebar-filter" aria-label="Panel filter">
+      <div class="filter-panel-inner">
+        <h3 class="filter-panel-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+          Filter Data
+        </h3>
+        <div id="filter-controls-desktop" class="filter-controls-list">
+          <!-- diisi partial (template) -->
+        </div>
+      </div>
+    </aside>
+
+    <!-- ===== KONTEN UTAMA ===== -->
+    <div class="content-area">
+
+      <!-- Empty state -->
+      <div id="empty-banner" class="alert-empty hidden" role="status">
+        🔍 Tidak ada data yang cocok. Coba ubah atau reset filter.
+      </div>
+
+      <!-- KPI CARDS -->
+      <section aria-labelledby="kpi-heading">
+        <h2 id="kpi-heading" class="sr-only">Ringkasan Statistik</h2>
+        <div class="kpi-grid">
+          <div class="kpi-card kpi-accent-orange">
+            <div class="kpi-label">Total Anggota</div>
+            <div class="kpi-value" id="kpi-total">—</div>
+          </div>
+          <div class="kpi-card kpi-accent-teal">
+            <div class="kpi-label">Rata-rata Kalori</div>
+            <div class="kpi-value" id="kpi-cal">—</div>
+            <div class="kpi-unit">kkal/sesi</div>
+          </div>
+          <div class="kpi-card kpi-accent-purple">
+            <div class="kpi-label">Durasi Sesi</div>
+            <div class="kpi-value" id="kpi-dur">—</div>
+            <div class="kpi-unit">jam</div>
+          </div>
+          <div class="kpi-card kpi-accent-rose">
+            <div class="kpi-label">Avg BPM</div>
+            <div class="kpi-value" id="kpi-bpm">—</div>
+            <div class="kpi-unit">bpm</div>
+          </div>
+          <div class="kpi-card kpi-accent-blue">
+            <div class="kpi-label">Rata-rata BMI</div>
+            <div class="kpi-value" id="kpi-bmi">—</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- INSIGHT SECTION: charts + auto-insight panel -->
+      <section id="insight-section" aria-labelledby="insight-heading">
+        <div class="section-header mt-8 mb-4">
+          <h2 id="insight-heading" class="section-title">Insight &amp; Visualisasi</h2>
+        </div>
+
+        <!-- Row 1: 3 charts -->
+        <div class="chart-grid-3">
+          <div class="chart-card">
+            <h3 class="chart-title">Distribusi Jenis Latihan</h3>
+            <div class="chart-wrap"><canvas id="chart-workout-dist"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3 class="chart-title">Rata-rata Kalori per Jenis Latihan</h3>
+            <div class="chart-wrap"><canvas id="chart-cal-workout"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3 class="chart-title">Rata-rata Kalori per Level Pengalaman</h3>
+            <div class="chart-wrap"><canvas id="chart-cal-exp"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Row 2: scatter (wide) + BMI -->
+        <div class="chart-grid-2-1">
+          <div class="chart-card">
+            <h3 class="chart-title">Durasi Sesi vs Kalori Terbakar</h3>
+            <div class="chart-wrap-tall"><canvas id="chart-scatter"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3 class="chart-title">Distribusi Kategori BMI</h3>
+            <div class="chart-wrap"><canvas id="chart-bmi-cat"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Row 3: frekuensi + auto-insight panel -->
+        <div class="chart-grid-2">
+          <div class="chart-card">
+            <h3 class="chart-title">Rata-rata Durasi per Frekuensi Mingguan</h3>
+            <div class="chart-wrap"><canvas id="chart-dur-freq"></canvas></div>
+          </div>
+
+          <!-- Insight Otomatis (berbasis aturan) -->
+          <div class="insight-panel" aria-live="polite" aria-label="Temuan otomatis berdasarkan filter">
+            <div class="insight-panel-header">
+              <span class="insight-icon" aria-hidden="true">💡</span>
+              <h3 class="insight-panel-title">Insight Otomatis</h3>
+            </div>
+            <div id="insight-findings" class="insight-block">
+              <p class="insight-section-label">Temuan</p>
+              <ul id="insight-finding-list" class="insight-list"></ul>
+            </div>
+            <div id="insight-recs" class="insight-block">
+              <p class="insight-section-label">Rekomendasi</p>
+              <ul id="insight-rec-list" class="insight-list"></ul>
+            </div>
+            <p class="insight-disclaimer">
+              ℹ️ Temuan menunjukkan korelasi, bukan sebab-akibat. Bukan saran medis.
+            </p>
+          </div>
+        </div>
+
+      </section>
+    </div><!-- /content-area -->
+  </div><!-- /main-layout -->
+
+  <!-- ============================================================
+       MEMBER TOOLS: Cari Program + Kalkulator BMI
+       ============================================================ -->
+  <div id="search-section" class="section-wrapper" style="max-width:1280px;margin:0 auto;padding:2rem 1.25rem;">
+
+    <div class="section-header" style="margin-bottom:1.5rem;">
+      <h2 class="section-title">Alat untuk Anggota</h2>
+      <p class="section-sub">Temukan program latihan serupa dari data nyata dan hitung BMI Anda</p>
+    </div>
+
+    <div class="member-tools-grid">
+
+      <!-- ===== CARI PROGRAM LATIHAN ===== -->
+      <div class="tool-card" id="program-search-card">
+        <div class="tool-card-header">
+          <span class="tool-icon" aria-hidden="true">🔍</span>
+          <div>
+            <h3 class="tool-title">Cari Program Latihan</h3>
+            <p class="tool-subtitle">Temukan anggota serupa berdasarkan profil latihan Anda</p>
+          </div>
+        </div>
+
+        <form id="search-form" class="search-form" novalidate aria-label="Form pencarian program latihan">
+          <div class="form-group">
+            <label class="form-label" for="s-exp">Level Pengalaman <span class="required-star" aria-hidden="true">*</span></label>
+            <select id="s-exp" class="filter-select" required aria-required="true">
+              <option value="">Pilih level…</option>
+              <option value="1">Level 1 — Pemula</option>
+              <option value="2">Level 2 — Menengah</option>
+              <option value="3">Level 3 — Lanjutan</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="s-freq">Frekuensi Mingguan <span class="required-star" aria-hidden="true">*</span></label>
+            <select id="s-freq" class="filter-select" required aria-required="true">
+              <option value="">Pilih frekuensi…</option>
+              <option value="2">2 hari/minggu</option>
+              <option value="3">3 hari/minggu</option>
+              <option value="4">4 hari/minggu</option>
+              <option value="5">5 hari/minggu</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="s-dur">
+              Target Durasi Sesi: <strong id="s-dur-val" class="slider-value-label">1,0 jam</strong>
+            </label>
+            <input type="range" id="s-dur" class="duration-slider"
+              min="0.5" max="2" step="0.25" value="1.0"
+              aria-valuemin="0.5" aria-valuemax="2" aria-valuenow="1.0"
+              aria-valuetext="1,0 jam" />
+            <div class="slider-ticks" aria-hidden="true">
+              <span>0,5j</span><span>0,75j</span><span>1j</span><span>1,25j</span>
+              <span>1,5j</span><span>1,75j</span><span>2j</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="s-workout">Jenis Latihan <span class="optional-tag">opsional</span></label>
+            <select id="s-workout" class="filter-select">
+              <option value="">Semua Jenis</option>
+              <option value="Yoga">🧘 Yoga</option>
+              <option value="HIIT">🔥 HIIT</option>
+              <option value="Cardio">🏃 Cardio</option>
+              <option value="Strength">💪 Strength</option>
+            </select>
+          </div>
+          <button type="submit" class="btn-primary w-full" id="btn-search" style="margin-top:.25rem;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Cari Anggota Serupa
+          </button>
+        </form>
+
+        <div id="search-result" class="search-result hidden" aria-live="polite" aria-label="Hasil pencarian program">
+          <div class="result-header">
+            <span class="result-title">Hasil Pencarian</span>
+            <span id="result-sample-warn" class="sample-warn hidden">⚠️ Sampel kecil (&lt;20 anggota)</span>
+          </div>
+          <div class="result-grid" id="result-stats-grid"></div>
+          <p class="result-disclaimer">
+            📊 Angka di atas adalah <strong>perbandingan dari data historis</strong> anggota serupa, bukan jaminan hasil latihan Anda.
+          </p>
+          <button id="btn-save-plan" class="btn-save-plan" type="button">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Simpan ke Rencana Saya
+          </button>
+        </div>
+      </div>
+
+      <!-- ===== KALKULATOR BMI ===== -->
+      <div class="tool-card" id="bmi-calc-card">
+        <div class="tool-card-header">
+          <span class="tool-icon" aria-hidden="true">⚖️</span>
+          <div>
+            <h3 class="tool-title">Kalkulator BMI</h3>
+            <p class="tool-subtitle">Bandingkan BMI Anda dengan distribusi anggota gym</p>
+          </div>
+        </div>
+        <div class="bmi-form">
+          <div class="bmi-inputs-row">
+            <div class="form-group">
+              <label class="form-label" for="bmi-weight">Berat Badan</label>
+              <div class="input-with-unit">
+                <input type="number" id="bmi-weight" class="text-input" placeholder="70" min="30" max="200" step="0.1" aria-label="Berat badan dalam kilogram" />
+                <span class="input-unit">kg</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="bmi-height">Tinggi Badan</label>
+              <div class="input-with-unit">
+                <input type="number" id="bmi-height" class="text-input" placeholder="170" min="100" max="250" step="1" aria-label="Tinggi badan dalam sentimeter" />
+                <span class="input-unit">cm</span>
+              </div>
+            </div>
+          </div>
+          <button id="btn-calc-bmi" class="btn-primary w-full" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="12" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="12" y2="18"/></svg>
+            Hitung BMI
+          </button>
+        </div>
+        <div id="bmi-result" class="bmi-result hidden" aria-live="polite">
+          <div class="bmi-score-row">
+            <div class="bmi-score-box">
+              <span class="bmi-score-label">BMI Anda</span>
+              <span class="bmi-score-value" id="bmi-score-val">—</span>
+              <span class="bmi-cat-badge" id="bmi-cat-badge">—</span>
+            </div>
+            <div class="bmi-compare-box">
+              <span class="bmi-score-label">Posisi dalam data</span>
+              <span class="bmi-percentile" id="bmi-percentile">—</span>
+              <span class="bmi-compare-sub" id="bmi-compare-sub">dari seluruh anggota</span>
+            </div>
+          </div>
+          <div class="bmi-dist-bar" aria-label="Distribusi BMI anggota" role="img">
+            <div class="bmi-dist-segment" id="bmi-seg-under"><div class="bmi-seg-fill" style="background:#0ea5e9"></div><span class="bmi-seg-label">Under</span></div>
+            <div class="bmi-dist-segment" id="bmi-seg-normal"><div class="bmi-seg-fill" style="background:#0d9488"></div><span class="bmi-seg-label">Normal</span></div>
+            <div class="bmi-dist-segment" id="bmi-seg-over"><div class="bmi-seg-fill" style="background:#f59e0b"></div><span class="bmi-seg-label">Over</span></div>
+            <div class="bmi-dist-segment" id="bmi-seg-obese"><div class="bmi-seg-fill" style="background:#f43f5e"></div><span class="bmi-seg-label">Obese</span></div>
+          </div>
+          <div id="bmi-dist-pct-row" class="bmi-dist-pct-row"></div>
+          <p class="result-disclaimer" style="margin-top:.75rem;">
+            ℹ️ BMI adalah indeks sederhana. Nilai ini <strong>bukan saran medis</strong> dan tidak menggantikan konsultasi profesional.
+          </p>
+        </div>
+      </div>
+
+    </div><!-- /member-tools-grid -->
+  </div><!-- /search-section -->
+
+  <!-- ============================================================
+       MODAL: RENCANA SAYA
+       ============================================================ -->
+  <div id="plan-modal-overlay" class="modal-overlay hidden" aria-hidden="true"></div>
+  <div id="plan-modal" class="plan-modal" role="dialog" aria-modal="true" aria-labelledby="plan-modal-title" tabindex="-1">
+    <div class="plan-modal-header">
+      <h2 id="plan-modal-title" class="sheet-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Rencana Saya
+      </h2>
+      <button id="btn-close-plan" class="btn-icon" aria-label="Tutup Rencana Saya">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="plan-modal-body">
+      <p class="plan-storage-note">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Rencana hanya tersimpan di perangkat ini (localStorage).
+      </p>
+      <div id="plan-empty-msg" class="plan-empty-msg hidden">
+        <span aria-hidden="true">📋</span>
+        <p>Belum ada rencana tersimpan.</p>
+        <p>Cari program dan klik "Simpan ke Rencana Saya".</p>
+      </div>
+      <ul id="plan-list" class="plan-list" aria-label="Daftar rencana tersimpan"></ul>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       TOAST NOTIFIKASI
+       ============================================================ -->
+  <div id="toast" class="toast hidden" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- ============================================================
+       BOTTOM SHEET FILTER (mobile/tablet)
+       ============================================================ -->
+  <div id="filter-sheet-overlay" class="sheet-overlay hidden" aria-hidden="true"></div>
+  <div id="filter-sheet" class="filter-sheet" role="dialog" aria-modal="true" aria-label="Panel filter" tabindex="-1">
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="sheet-header">
+      <h2 class="sheet-title">Filter Data</h2>
+      <button id="btn-close-filter" class="btn-icon" aria-label="Tutup panel filter">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="filter-controls-mobile" class="filter-controls-list px-5 pb-4"></div>
+    <div class="sheet-footer">
+      <button id="btn-reset-sheet" class="btn-secondary w-full">↺ Reset Filter</button>
+      <button id="btn-apply-sheet" class="btn-primary w-full">Terapkan Filter</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       FOOTER
+       ============================================================ -->
+  <footer id="footer" class="site-footer" role="contentinfo">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="logo-icon" aria-hidden="true">⚡</span>
+        <span class="logo-text">FitSearch</span>
+      </div>
+      <div class="footer-info">
+        <p>
+          Sumber data: <a href="https://www.kaggle.com/" target="_blank" rel="noopener" class="footer-link">Kaggle — Gym Members Exercise Dataset</a> · 973 anggota · 15 kolom
+        </p>
+        <p class="footer-disclaimer">
+          ⚠️ Dashboard ini menampilkan <strong>data agregat</strong> untuk keperluan analitik. Angka yang ditampilkan <strong>bukan saran medis</strong> dan tidak menggantikan konsultasi profesional kesehatan.
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- gym_data.js HARUS dimuat sebelum script.js -->
+  <script src="gym_data.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
